@@ -11,8 +11,7 @@ import numpy as np
 from motion import get_motion_parameters
 from utils import check_folder
 
-def initialize_population(Config, mean_age=45, max_age=105,
-                          xbounds=[0, 1], ybounds=[0, 1]):
+def initialize_population(Config):
     '''initialized the population for the simulation
 
     the population matrix for this simulation has the following columns:
@@ -58,28 +57,28 @@ def initialize_population(Config, mean_age=45, max_age=105,
     population[:,0] = [x for x in range(Config.pop_size)]
 
     #initialize random coordinates
-    population[:,1] = np.random.uniform(low = xbounds[0] + 0.05, high = xbounds[1] - 0.05, 
+    population[:,1] = np.random.uniform(low = Config.xbounds[0] + 0.05, high = Config.xbounds[1] - 0.05,
                                         size = (Config.pop_size,))
-    population[:,2] = np.random.uniform(low = ybounds[0] + 0.05, high = ybounds[1] - 0.05, 
+    population[:,2] = np.random.uniform(low = Config.ybounds[0] + 0.05, high = Config.ybounds[1] - 0.05,
                                         size=(Config.pop_size,))
 
     #initialize random headings -1 to 1
-    population[:,3] = np.random.normal(loc = 0, scale = 1/3, 
+    population[:,3] = np.random.normal(loc = 0, scale = 1/3,
                                        size=(Config.pop_size,))
-    population[:,4] = np.random.normal(loc = 0, scale = 1/3, 
+    population[:,4] = np.random.normal(loc = 0, scale = 1/3,
                                        size=(Config.pop_size,))
 
     #initialize random speeds
     population[:,5] = np.random.normal(Config.speed, Config.speed / 3)
 
     #initalize ages
-    std_age = (max_age - mean_age) / 3
-    population[:,7] = np.int32(np.random.normal(loc = mean_age, 
-                                                scale = std_age, 
+    std_age = (Config.max_age - Config.mean_age) / 3
+    population[:,7] = np.int32(np.random.normal(loc = Config.mean_age,
+                                                scale = std_age,
                                                 size=(Config.pop_size,)))
 
-    population[:,7] = np.clip(population[:,7], a_min = 0, 
-                              a_max = max_age) #clip those younger than 0 years
+    population[:,7] = np.clip(population[:,7], a_min = 0,
+                              a_max = Config.max_age) #clip those younger than 0 years
 
     #build recovery_vector
     population[:,9] = np.random.normal(loc = 0.5, scale = 0.5 / 3, size=(Config.pop_size,))
@@ -108,7 +107,7 @@ def initialize_destination_matrix(pop_size, total_destinations):
     return destinations
 
 
-def set_destination_bounds(population, destinations, xmin, ymin, 
+def set_destination_bounds(population, destinations, xmin, ymin,
                            xmax, ymax, dest_no=1, teleport=True):
     '''teleports all persons within limits
 
@@ -141,7 +140,7 @@ def set_destination_bounds(population, destinations, xmin, ymin,
         population[:,2] = np.random.uniform(low = ymin, high = ymax, size = len(population))
 
     #get parameters
-    x_center, y_center, x_wander, y_wander = get_motion_parameters(xmin, ymin, 
+    x_center, y_center, x_wander, y_wander = get_motion_parameters(xmin, ymin,
                                                                    xmax, ymax)
 
     #set destination centers
@@ -175,7 +174,7 @@ def save_data(population, pop_tracker):
 
     fatalities : list or ndarray
         the array containing data of fatalities over time
-    ''' 
+    '''
     num_files = len(glob('data/*'))
     check_folder('data/%i' %num_files)
     np.save('data/%i/population.npy' %num_files, population)
@@ -198,7 +197,7 @@ def save_population(population, tstep=0, folder='data_tstep'):
 
     tstep : int
         the timestep that will be saved
-    ''' 
+    '''
     check_folder('%s/' %(folder))
     np.save('%s/population_%i.npy' %(folder, tstep), population)
 
@@ -207,7 +206,7 @@ class Population_trackers():
     '''class used to track population parameters
 
     Can track population parameters over time that can then be used
-    to compute statistics or to visualise. 
+    to compute statistics or to visualise.
 
     TODO: track age cohorts here as well
     '''
@@ -218,7 +217,7 @@ class Population_trackers():
         self.fatalities = []
 
         #PLACEHOLDER - whether recovered individual can be reinfected
-        self.reinfect = False 
+        self.reinfect = False
 
     def update_counts(self, population):
         '''docstring

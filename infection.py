@@ -156,9 +156,6 @@ def infect(population, Config, frame, send_to_location=False,
 
     else:
         #if more than half are infected slice based in healthy people (to speed up computation)
-
-
-
         for person in healthy_previous_step:
             #define infecftion range around healthy person
             infection_zone = [person[1] - Config.infection_range, person[2] - Config.infection_range,

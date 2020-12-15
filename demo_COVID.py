@@ -11,254 +11,16 @@ from path_planning import set_destination, check_at_destination, keep_at_destina
 from population import initialize_population, initialize_destination_matrix
 from config import Configuration
 
-def update(frame, population, destinations, configuration, infection_range=0.01,
-           infection_chance=0.03, recovery_duration=(200, 500), mortality_chance=0.02,
-           xbounds=[0.02, 0.98], ybounds=[0.02, 0.98], wander_range_x=0.05, wander_range_y=0.05,
-           risk_age=55, critical_age=75, critical_mortality_chance=0.1,
-           risk_increase='quadratic', no_treatment_factor=3,
-           treatment_factor=0.5, healthcare_capacity=250, age_dependent_risk=True,
-           treatment_dependent_risk=True, visualise=True, verbose=True):
+def update(frame, population, destinations, configuration):
 
-    #add one infection to jumpstart
-    if frame == 100:
-        #make C
-        #first leg
-        destinations[:,0][0:100] = 0.05
-        destinations[:,1][0:100] = 0.7
-        population[:,13][0:100] = 0.01
-        population[:,14][0:100] = 0.05
-
-        #Top
-        destinations[:,0][100:200] = 0.1
-        destinations[:,1][100:200] = 0.75
-        population[:,13][100:200] = 0.05
-        population[:,14][100:200] = 0.01
-
-        #Bottom
-        destinations[:,0][200:300] = 0.1
-        destinations[:,1][200:300] = 0.65
-        population[:,13][200:300] = 0.05
-        population[:,14][200:300] = 0.01
-
-
-        #make O
-        #first leg
-        destinations[:,0][300:400] = 0.2
-        destinations[:,1][300:400] = 0.7
-        population[:,13][300:400] = 0.01
-        population[:,14][300:400] = 0.05
-
-        #Top
-        destinations[:,0][400:500] = 0.25
-        destinations[:,1][400:500] = 0.75
-        population[:,13][400:500] = 0.05
-        population[:,14][400:500] = 0.01
-
-        #Bottom
-        destinations[:,0][500:600] = 0.25
-        destinations[:,1][500:600] = 0.65
-        population[:,13][500:600] = 0.05
-        population[:,14][500:600] = 0.01
-
-        #second leg
-        destinations[:,0][600:700] = 0.3
-        destinations[:,1][600:700] = 0.7
-        population[:,13][600:700] = 0.01
-        population[:,14][600:700] = 0.05
-
-
-        #make V
-        #First leg
-        destinations[:,0][700:800] = 0.35
-        destinations[:,1][700:800] = 0.7
-        population[:,13][700:800] = 0.01
-        population[:,14][700:800] = 0.05
-
-        #Bottom
-        destinations[:,0][800:900] = 0.4
-        destinations[:,1][800:900] = 0.65
-        population[:,13][800:900] = 0.05
-        population[:,14][800:900] = 0.01
-
-        #second leg
-        destinations[:,0][900:1000] = 0.45
-        destinations[:,1][900:1000] = 0.7
-        population[:,13][900:1000] = 0.01
-        population[:,14][900:1000] = 0.05
-
-        #Make I
-        #leg
-        destinations[:,0][1000:1100] = 0.5
-        destinations[:,1][1000:1100] = 0.7
-        population[:,13][1000:1100] = 0.01
-        population[:,14][1000:1100] = 0.05
-
-        #I dot
-        destinations[:,0][1100:1200] = 0.5
-        destinations[:,1][1100:1200] = 0.8
-        population[:,13][1100:1200] = 0.01
-        population[:,14][1100:1200] = 0.01
-
-        #make D
-        #first leg
-        destinations[:,0][1200:1300] = 0.55
-        destinations[:,1][1200:1300] = 0.67
-        population[:,13][1200:1300] = 0.01
-        population[:,14][1200:1300] = 0.03
-
-        #Top
-        destinations[:,0][1300:1400] = 0.6
-        destinations[:,1][1300:1400] = 0.75
-        population[:,13][1300:1400] = 0.05
-        population[:,14][1300:1400] = 0.01
-
-        #Bottom
-        destinations[:,0][1400:1500] = 0.6
-        destinations[:,1][1400:1500] = 0.65
-        population[:,13][1400:1500] = 0.05
-        population[:,14][1400:1500] = 0.01
-
-        #second leg
-        destinations[:,0][1500:1600] = 0.65
-        destinations[:,1][1500:1600] = 0.7
-        population[:,13][1500:1600] = 0.01
-        population[:,14][1500:1600] = 0.05
-
-        #dash
-        destinations[:,0][1600:1700] = 0.725
-        destinations[:,1][1600:1700] = 0.7
-        population[:,13][1600:1700] = 0.03
-        population[:,14][1600:1700] = 0.01
-
-        #Make 1
-        destinations[:,0][1700:1800] = 0.8
-        destinations[:,1][1700:1800] = 0.7
-        population[:,13][1700:1800] = 0.01
-        population[:,14][1700:1800] = 0.05
-
-
-        #Make 9
-        #right leg
-        destinations[:,0][1800:1900] = 0.91
-        destinations[:,1][1800:1900] = 0.675
-        population[:,13][1800:1900] = 0.01
-        population[:,14][1800:1900] = 0.08
-
-        #roof
-        destinations[:,0][1900:2000] = 0.88
-        destinations[:,1][1900:2000] = 0.75
-        population[:,13][1900:2000] = 0.035
-        population[:,14][1900:2000] = 0.01
-
-        #middle
-        destinations[:,0][2000:2100] = 0.88
-        destinations[:,1][2000:2100] = 0.7
-        population[:,13][2000:2100] = 0.035
-        population[:,14][2000:2100] = 0.01
-
-        #left vertical leg
-        destinations[:,0][2100:2200] = 0.86
-        destinations[:,1][2100:2200] = 0.72
-        population[:,13][2100:2200] = 0.01
-        population[:,14][2100:2200] = 0.01
-
-        ###################
-        ##### ROW TWO #####
-        ###################
-
-        #S
-        #first leg
-        destinations[:,0][2200:2300] = 0.115
-        destinations[:,1][2200:2300] = 0.5
-        population[:,13][2200:2300] = 0.01
-        population[:,14][2200:2300] = 0.03
-
-        #Top
-        destinations[:,0][2300:2400] = 0.15
-        destinations[:,1][2300:2400] = 0.55
-        population[:,13][2300:2400] = 0.05
-        population[:,14][2300:2400] = 0.01
-
-        #second leg
-        destinations[:,0][2400:2500] = 0.2
-        destinations[:,1][2400:2500] = 0.45
-        population[:,13][2400:2500] = 0.01
-        population[:,14][2400:2500] = 0.03
-
-        #middle
-        destinations[:,0][2500:2600] = 0.15
-        destinations[:,1][2500:2600] = 0.48
-        population[:,13][2500:2600] = 0.05
-        population[:,14][2500:2600] = 0.01
-
-        #bottom
-        destinations[:,0][2600:2700] = 0.15
-        destinations[:,1][2600:2700] = 0.41
-        population[:,13][2600:2700] = 0.05
-        population[:,14][2600:2700] = 0.01
-
-        #Make I
-        #leg
-        destinations[:,0][2700:2800] = 0.25
-        destinations[:,1][2700:2800] = 0.45
-        population[:,13][2700:2800] = 0.01
-        population[:,14][2700:2800] = 0.05
-
-        #I dot
-        destinations[:,0][2800:2900] = 0.25
-        destinations[:,1][2800:2900] = 0.55
-        population[:,13][2800:2900] = 0.01
-        population[:,14][2800:2900] = 0.01
-
-        #M
-        #Top
-        destinations[:,0][2900:3000] = 0.37
-        destinations[:,1][2900:3000] = 0.5
-        population[:,13][2900:3000] = 0.07
-        population[:,14][2900:3000] = 0.01
-
-        #Left leg
-        destinations[:,0][3000:3100] = 0.31
-        destinations[:,1][3000:3100] = 0.45
-        population[:,13][3000:3100] = 0.01
-        population[:,14][3000:3100] = 0.05
-
-        #Middle leg
-        destinations[:,0][3100:3200] = 0.37
-        destinations[:,1][3100:3200] = 0.45
-        population[:,13][3100:3200] = 0.01
-        population[:,14][3100:3200] = 0.05
-
-        #Right leg
-        destinations[:,0][3200:3300] = 0.43
-        destinations[:,1][3200:3300] = 0.45
-        population[:,13][3200:3300] = 0.01
-        population[:,14][3200:3300] = 0.05
-
-        #set all destinations active
-        population[:,11] = 1
-
-    elif frame == 400:
-        population[:,11] = 0
-        population[:,12] = 0
-        population = update_randoms(population, pop_size, 1, 1)
-
-    #define motion vectors if destinations active and not everybody is at destination
-    active_dests = len(population[population[:,11] != 0]) # look op this only once
-
-    if active_dests > 0 and len(population[population[:,12] == 0]) > 0:
-        population = set_destination(population, destinations)
-        population = check_at_destination(population, destinations)
-
-    if active_dests > 0 and len(population[population[:,12] == 1]) > 0:
-        #keep them at destination
-        population = keep_at_destination(population, destinations,
-                                         wander_factor = 1)
+    # #add one infection to jumpstart
+    if frame == 10:
+        population[0,6] = 1
 
     #update out of bounds
     #define bounds arrays
-    _xbounds = np.array([[xbounds[0] + 0.02, xbounds[1] - 0.02]] * len(population))
-    _ybounds = np.array([[ybounds[0] + 0.02, ybounds[1] - 0.02]] * len(population))
+    _xbounds = np.array([[configuration.xbounds[0] + 0.02, configuration.xbounds[1] - 0.02]] * len(population))
+    _ybounds = np.array([[configuration.ybounds[0] + 0.02, configuration.ybounds[1] - 0.02]] * len(population))
     population = out_of_bounds(population, _xbounds, _ybounds)
 
     #update randoms
@@ -279,14 +41,14 @@ def update(frame, population, destinations, configuration, infection_range=0.01,
 
     fatalities_plot.append(len(population[population[:,6] == 3]))
 
-    if visualise:
+    if configuration.visualise:
         #construct plot and visualise
         spec = fig.add_gridspec(ncols=1, nrows=2, height_ratios=[5,2])
         ax1.clear()
         ax2.clear()
 
-        ax1.set_xlim(xbounds[0], xbounds[1])
-        ax1.set_ylim(ybounds[0], ybounds[1])
+        ax1.set_xlim(configuration.xbounds[0], configuration.xbounds[1])
+        ax1.set_ylim(configuration.ybounds[0], configuration.ybounds[1])
 
         healthy = population[population[:,6] == 0][:,1:3]
         ax1.scatter(healthy[:,0], healthy[:,1], color='gray', s = 2, label='healthy')
@@ -302,8 +64,8 @@ def update(frame, population, destinations, configuration, infection_range=0.01,
 
 
         #add text descriptors
-        ax1.text(xbounds[0],
-                 ybounds[1] + ((ybounds[1] - ybounds[0]) / 100),
+        ax1.text(configuration.xbounds[0],
+                 configuration.ybounds[1] + ((configuration.ybounds[1] - configuration.ybounds[0]) / 100),
                  'timestep: %i, total: %i, healthy: %i infected: %i immune: %i fatalities: %i' %(frame,
                                                                                               len(population),
                                                                                               len(healthy),
@@ -313,11 +75,11 @@ def update(frame, population, destinations, configuration, infection_range=0.01,
                  fontsize=6)
 
         ax2.set_title('number of infected')
-        ax2.text(0, pop_size * 0.05,
+        ax2.text(0, configuration.pop_size * 0.05,
                  'https://github.com/paulvangentcom/python-corona-simulation',
                  fontsize=6, alpha=0.5)
         ax2.set_xlim(0, simulation_steps)
-        ax2.set_ylim(0, pop_size + 100)
+        ax2.set_ylim(0, configuration.pop_size + 100)
         ax2.plot(infected_plot, color='gray')
         ax2.plot(fatalities_plot, color='black', label='fatalities')
 
@@ -346,16 +108,16 @@ if __name__ == '__main__':
     #set simulation parameters
     simulation_steps = 5000 #total simulation steps performed
     #size of the simulated world in coordinates
-    xbounds = [0, 1]
-    ybounds = [0, 1]
+    xbounds = [0, 2]
+    ybounds = [0, 2]
 
     visualise = True #whether to visualise the simulation
     verbose = True #whether to print infections, recoveries and fatalities to the terminal
 
     #population parameters
     pop_size = 3300
-    mean_age=45
-    max_age=105
+    mean_age = 45
+    max_age = 105
 
     #motion parameters
     mean_speed = 0.01 # the mean speed (defined as heading * speed)
@@ -369,10 +131,10 @@ if __name__ == '__main__':
     wander_range_y = 0.1
 
     #illness parameters
-    infection_range=0.01 #range surrounding infected patient that infections can take place
-    infection_chance=0.03 #chance that an infection spreads to nearby healthy people each tick
-    recovery_duration=(200, 500) #how many ticks it may take to recover from the illness
-    mortality_chance=0.02 #global baseline chance of dying from the disease
+    infection_range = 0.01 #range surrounding infected patient that infections can take place
+    infection_chance = 0.03 #chance that an infection spreads to nearby healthy people each tick
+    recovery_duration = (200, 500) #how many ticks it may take to recover from the illness
+    mortality_chance = 0.02 #global baseline chance of dying from the disease
 
     #healthcare parameters
     healthcare_capacity = 300 #capacity of the healthcare system
@@ -392,10 +154,28 @@ if __name__ == '__main__':
     ##### END OF SETTABLE PARAMETERS #####
     ######################################
 
-    configuration = Configuration(pop_size=pop_size)
+    configuration = Configuration(verbose=verbose,
+									visualise=visualise,
+									simulation_steps=simulation_steps,
+									xbounds=xbounds,
+									ybounds=ybounds,
+									pop_size=pop_size,
+									mean_age=mean_age,
+									max_age=max_age,
+									age_dependent_risk=age_dependent_risk,
+									risk_age=risk_age,
+									critical_age=critical_age,
+									critical_mortality_chance=critical_mortality_chance,
+									risk_increase=risk_increase,
+									proportion_distancing=proportion_distancing,
+									recovery_duration=recovery_duration,
+									mortality_chance=mortality_chance,
+									treatment_factor=treatment_factor,
+									no_treatment_factor=no_treatment_factor,
+									treatment_dependent_risk=treatment_dependent_risk)
 
     #initalize population
-    population = initialize_population(configuration, mean_age, max_age, xbounds, ybounds)
+    population = initialize_population(configuration)
     population[:,13] = wander_range_x #set wander ranges to default specified value
     population[:,14] = wander_range_y #set wander ranges to default specified value
 
@@ -424,12 +204,7 @@ if __name__ == '__main__':
     fatalities_plot = []
 
     #define arguments for visualisation loop
-    fargs = (population, destinations, configuration, infection_range, infection_chance,
-             recovery_duration, mortality_chance, xbounds, ybounds,
-             wander_range_x, wander_range_y, risk_age, critical_age,
-             critical_mortality_chance, risk_increase, no_treatment_factor,
-             treatment_factor, healthcare_capacity, age_dependent_risk,
-             treatment_dependent_risk, visualise, verbose,)
+    fargs = (population, destinations, configuration)
 
 
     animation = FuncAnimation(fig, update, fargs = fargs, frames = simulation_steps, interval = 33)
