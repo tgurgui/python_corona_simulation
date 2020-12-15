@@ -9,14 +9,14 @@ from infection import infect, recover_or_die, compute_mortality
 from motion import update_positions, out_of_bounds, update_randoms
 from path_planning import set_destination, check_at_destination, keep_at_destination
 from population import initialize_population, initialize_destination_matrix
+from config import Configuration
 
-
-def update(frame, population, destinations, pop_size, infection_range=0.01, 
+def update(frame, population, destinations, configuration, infection_range=0.01,
            infection_chance=0.03, recovery_duration=(200, 500), mortality_chance=0.02,
            xbounds=[0.02, 0.98], ybounds=[0.02, 0.98], wander_range_x=0.05, wander_range_y=0.05,
            risk_age=55, critical_age=75, critical_mortality_chance=0.1,
-           risk_increase='quadratic', no_treatment_factor=3, 
-           treatment_factor=0.5, healthcare_capacity=250, age_dependent_risk=True, 
+           risk_increase='quadratic', no_treatment_factor=3,
+           treatment_factor=0.5, healthcare_capacity=250, age_dependent_risk=True,
            treatment_dependent_risk=True, visualise=True, verbose=True):
 
     #add one infection to jumpstart
@@ -269,17 +269,13 @@ def update(frame, population, destinations, pop_size, infection_range=0.01,
 
     #update positions
     population = update_positions(population)
-    
+
     #find new infections
-    population = infect(population, pop_size, infection_range, infection_chance, frame, 
-                        healthcare_capacity, verbose)
+    population = infect(population, configuration, frame)
     infected_plot.append(len(population[population[:,6] == 1]))
 
     #recover and die
-    population = recover_or_die(population, frame, recovery_duration, mortality_chance,
-                                risk_age, critical_age, critical_mortality_chance,
-                                risk_increase, no_treatment_factor, age_dependent_risk,
-                                treatment_dependent_risk, treatment_factor, verbose)
+    population = recover_or_die(population, frame, configuration)
 
     fatalities_plot.append(len(population[population[:,6] == 3]))
 
@@ -291,33 +287,33 @@ def update(frame, population, destinations, pop_size, infection_range=0.01,
 
         ax1.set_xlim(xbounds[0], xbounds[1])
         ax1.set_ylim(ybounds[0], ybounds[1])
-        
+
         healthy = population[population[:,6] == 0][:,1:3]
         ax1.scatter(healthy[:,0], healthy[:,1], color='gray', s = 2, label='healthy')
-    
+
         infected = population[population[:,6] == 1][:,1:3]
         ax1.scatter(infected[:,0], infected[:,1], color='red', s = 2, label='infected')
 
         immune = population[population[:,6] == 2][:,1:3]
         ax1.scatter(immune[:,0], immune[:,1], color='green', s = 2, label='immune')
-    
+
         fatalities = population[population[:,6] == 3][:,1:3]
         ax1.scatter(fatalities[:,0], fatalities[:,1], color='black', s = 2, label='fatalities')
-        
-    
+
+
         #add text descriptors
-        ax1.text(xbounds[0], 
-                 ybounds[1] + ((ybounds[1] - ybounds[0]) / 100), 
+        ax1.text(xbounds[0],
+                 ybounds[1] + ((ybounds[1] - ybounds[0]) / 100),
                  'timestep: %i, total: %i, healthy: %i infected: %i immune: %i fatalities: %i' %(frame,
                                                                                               len(population),
-                                                                                              len(healthy), 
-                                                                                              len(infected), 
-                                                                                              len(immune), 
+                                                                                              len(healthy),
+                                                                                              len(infected),
+                                                                                              len(immune),
                                                                                               len(fatalities)),
                  fontsize=6)
-    
+
         ax2.set_title('number of infected')
-        ax2.text(0, pop_size * 0.05, 
+        ax2.text(0, pop_size * 0.05,
                  'https://github.com/paulvangentcom/python-corona-simulation',
                  fontsize=6, alpha=0.5)
         ax2.set_xlim(0, simulation_steps)
@@ -326,13 +322,13 @@ def update(frame, population, destinations, pop_size, infection_range=0.01,
         ax2.plot(fatalities_plot, color='black', label='fatalities')
 
         if treatment_dependent_risk:
-            #ax2.plot([healthcare_capacity for x in range(simulation_steps)], color='red', 
+            #ax2.plot([healthcare_capacity for x in range(simulation_steps)], color='red',
             #         label='healthcare capacity')
 
             infected_arr = np.asarray(infected_plot)
             indices = np.argwhere(infected_arr >= healthcare_capacity)
 
-            ax2.plot(indices, infected_arr[infected_arr >= healthcare_capacity], 
+            ax2.plot(indices, infected_arr[infected_arr >= healthcare_capacity],
                      color='red')
 
             #ax2.legend(loc = 1, fontsize = 6)
@@ -350,10 +346,10 @@ if __name__ == '__main__':
     #set simulation parameters
     simulation_steps = 5000 #total simulation steps performed
     #size of the simulated world in coordinates
-    xbounds = [0, 1] 
+    xbounds = [0, 1]
     ybounds = [0, 1]
 
-    visualise = True #whether to visualise the simulation 
+    visualise = True #whether to visualise the simulation
     verbose = True #whether to print infections, recoveries and fatalities to the terminal
 
     #population parameters
@@ -389,15 +385,17 @@ if __name__ == '__main__':
     critical_mortality_chance = 0.1 #maximum mortality risk for older age
     treatment_dependent_risk = True #whether risk is affected by treatment
     #whether risk between risk and critical age increases 'linear' or 'quadratic'
-    risk_increase = 'quadratic' 
+    risk_increase = 'quadratic'
     no_treatment_factor = 3 #risk increase factor to use if healthcare system is full
-   
+
     ######################################
     ##### END OF SETTABLE PARAMETERS #####
     ######################################
-    
+
+    configuration = Configuration(pop_size=pop_size)
+
     #initalize population
-    population = initialize_population(pop_size, mean_age, max_age, xbounds, ybounds)
+    population = initialize_population(configuration, mean_age, max_age, xbounds, ybounds)
     population[:,13] = wander_range_x #set wander ranges to default specified value
     population[:,14] = wander_range_y #set wander ranges to default specified value
 
@@ -424,13 +422,13 @@ if __name__ == '__main__':
 
     infected_plot = []
     fatalities_plot = []
-    
+
     #define arguments for visualisation loop
-    fargs = (population, destinations, pop_size, infection_range, infection_chance, 
-             recovery_duration, mortality_chance, xbounds, ybounds, 
-             wander_range_x, wander_range_y, risk_age, critical_age, 
-             critical_mortality_chance, risk_increase, no_treatment_factor, 
-             treatment_factor, healthcare_capacity, age_dependent_risk, 
+    fargs = (population, destinations, configuration, infection_range, infection_chance,
+             recovery_duration, mortality_chance, xbounds, ybounds,
+             wander_range_x, wander_range_y, risk_age, critical_age,
+             critical_mortality_chance, risk_increase, no_treatment_factor,
+             treatment_factor, healthcare_capacity, age_dependent_risk,
              treatment_dependent_risk, visualise, verbose,)
 
 
